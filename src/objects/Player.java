@@ -10,17 +10,20 @@ public class Player {
 	GamePanel panel;
 	World world;
 	Rectangle bounds;
-	int x, y, colX, colY;
+	int x, y, colX, colY, spawnX, spawnY;
 	int size = 32;
 	double xV, xA, yV, yG, yJ, xMaxV;
 	boolean keyLeft, keyRight, keyJump, keyBoost, isJumping, canJump;
 	
 	
 	Block[][] worldBlocks;;
+	Virus[][] worldVirus;;
 	
 	public Player(int x, int y, World world, GamePanel panel) {
 		this.panel = panel;
 		this.world = world;
+		this.spawnX = x;
+		this.spawnY = y;
 		this.x = x;
 		this.y = y;
 		this.xA = 1;
@@ -28,6 +31,7 @@ public class Player {
 		this.yJ = -20;
 		this.canJump= true; 
 		this.worldBlocks = world.getWorldBlocks();
+		this.worldVirus = world.getWorldViruses();
 		
 		bounds = new Rectangle(x, y, size, size);
 	}
@@ -73,6 +77,7 @@ public class Player {
 		bounds.x += xV;
 		for(int i = 0; i < world.getWidth(); i++) {
 			for(int j = 0; j < world.getHeight(); j++) {
+				if(worldVirus[i][j] != null && worldVirus[i][j].bounds.intersects(bounds)) respawn();
 				if(worldBlocks[i][j] != null && worldBlocks[i][j].bounds.intersects(bounds)) {
 					bounds.x -= xV;
 					while(worldBlocks[i][j] != null && !worldBlocks[i][j].bounds.intersects(bounds))
@@ -99,7 +104,7 @@ public class Player {
 					y = bounds.y;
 				}
 			}
-		}		
+		}
 		
 		x += xV;
 		y += yV;
@@ -112,6 +117,7 @@ public class Player {
 		if(xV == 0) gtd.drawImage(Assets.octet[0], x, y, null);
 		if(xV > 0) gtd.drawImage(Assets.octet[2], x, y, null);
 		if(xV < 0) gtd.drawImage(Assets.octet[1], x, y, null);
+		drawLights(gtd);
 	}
 	public void drawLights(Graphics2D gtd) {
 		gtd.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, .25f));
@@ -121,6 +127,21 @@ public class Player {
 
 	public int getX() {
 		return x;
+	}
+
+	public void setPos(int x, int y) {
+		this.x = x;
+		this.y = y;
+	}
+
+	public void setVel(int xV, int yV) {
+		this.xV = xV;
+		this.yV = yV;
+	}
+
+	public void respawn() {
+		setVel(0, 0);
+		setPos(spawnX, spawnY);
 	}
 
 	public void setX(int x) {
