@@ -4,6 +4,8 @@ import java.awt.*;
 
 import framework.GamePanel;
 import graphics.Assets;
+import java.util.ArrayList;
+import java.util.List;
 
 public class Player {
 	
@@ -15,23 +17,25 @@ public class Player {
 	double xV, xA, yV, yG, yJ, xMaxV;
 	boolean keyLeft, keyRight, keyJump, keyBoost, isJumping, canJump;
 	
+	Block[][] worldBlocks;
+	Virus[][] worldVirus;
 	
-	Block[][] worldBlocks;;
-	Virus[][] worldVirus;;
-	
-	public Player(int x, int y, World world, GamePanel panel) {
+    private List<Bit> bits;
+
+	public Player(World world, GamePanel panel) {
 		this.panel = panel;
 		this.world = world;
+		this.x = world.getWorldPlayer().x;
+		this.y = world.getWorldPlayer().y;
 		this.spawnX = x;
 		this.spawnY = y;
-		this.x = x;
-		this.y = y;
 		this.xA = 1;
 		this.yG = 1;
 		this.yJ = -20;
 		this.canJump= true; 
 		this.worldBlocks = world.getWorldBlocks();
 		this.worldVirus = world.getWorldViruses();
+		bits = new ArrayList<>(8);
 		
 		bounds = new Rectangle(x, y, size, size);
 	}
@@ -77,7 +81,7 @@ public class Player {
 		bounds.x += xV;
 		for(int i = 0; i < world.getWidth(); i++) {
 			for(int j = 0; j < world.getHeight(); j++) {
-				if(worldVirus[i][j] != null && worldVirus[i][j].bounds.intersects(bounds)) respawn();
+				if(worldVirus[i][j] != null && worldVirus[i][j].bounds.intersects(bounds) && worldVirus[i][j].isAlive) restart();
 				if(worldBlocks[i][j] != null && worldBlocks[i][j].bounds.intersects(bounds)) {
 					bounds.x -= xV;
 					while(worldBlocks[i][j] != null && !worldBlocks[i][j].bounds.intersects(bounds))
@@ -111,18 +115,51 @@ public class Player {
 		
 		bounds.x = x;
 		bounds.y = y;
+
+		for (Bit bit : bits) {
+			if(!bit.bounds.intersects(bounds)) bit.shoot();
+			if(bit.bounds.intersects(bounds)) bit.collect();
+            bit.set();
+        }
+
+		bits.removeIf(bit -> bit.collected);
 	}
 	
 	public void draw(Graphics2D gtd) {
-		if(xV == 0) gtd.drawImage(Assets.octet[0], x, y, null);
-		if(xV > 0) gtd.drawImage(Assets.octet[2], x, y, null);
-		if(xV < 0) gtd.drawImage(Assets.octet[1], x, y, null);
+		if(keyRight) gtd.drawImage(Assets.octet[2], x, y, null);
+		else if(keyLeft) gtd.drawImage(Assets.octet[1], x, y, null);
+		else gtd.drawImage(Assets.octet[0], x, y, null);
 		drawLights(gtd);
+		drawBits(gtd);
 	}
+
 	public void drawLights(Graphics2D gtd) {
-		gtd.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, .25f));
+		gtd.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1f / (bits.size()+4)));
 		gtd.drawImage(Assets.redlight, x - 416 + size/2, y - 416 + size/2, null);
 		gtd.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1f));
+	}
+
+	public void shoot(double power, int x, int y) {
+		if(bits.size() == 7) {
+			restart();
+			return;
+		}
+        double direction = Math.atan2(y - 561, x - 975);
+		if(power < 2) power = 2;
+		if(power > 7) power = 7;
+		xV += -Math.cos(direction) * power * (bits.size()+4);
+		yV += -Math.sin(direction) * power * (bits.size()+4);
+		bits.add(new Bit(world, this.x, this.y, Math.cos(direction) * power, Math.sin(direction) * power));
+	}
+
+	public void drawBits(Graphics2D gtd) {
+        for (Bit bit : bits) {
+            bit.draw(gtd);
+        }
+	}
+
+	public int bits() {
+		return bits.size();
 	}
 
 	public int getX() {
@@ -139,7 +176,8 @@ public class Player {
 		this.yV = yV;
 	}
 
-	public void respawn() {
+	public void restart() {
+		bits.clear();
 		setVel(0, 0);
 		setPos(spawnX, spawnY);
 	}
@@ -210,5 +248,9 @@ public class Player {
 
 	public void setCanJump(boolean canJump) {
 		this.canJump = canJump;
+	}
+
+	public GamePanel getGamePanel() {
+		return panel;
 	}
 }

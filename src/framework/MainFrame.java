@@ -8,10 +8,10 @@ public class MainFrame extends JFrame{
 	private static final long serialVersionUID = 2228924937522267806L;
 
 	public MainFrame() {
-		GamePanel panel = new GamePanel();
+		GamePanel panel = new GamePanel(this);
 		panel.setLocation(0, 0);
 		panel.setSize(this.getSize());
-		panel.setBackground(new Color(221, 221, 221));
+		panel.setBackground(new Color(10, 0, 0));
 		panel.setVisible(true);
 		this.add(panel);
 		
